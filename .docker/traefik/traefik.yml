@@ -1,0 +1,39 @@
+defaultEntryPoints:
+  - base
+  - secure
+
+entryPoints:
+  base:
+    address: ":80"
+
+  secure:
+    address: ":443"
+
+providers:
+  docker:
+    endpoint: "unix:///var/run/docker.sock"
+    network: proxy
+    exposedbydefault: false
+    watch: true
+
+  file:
+    filename: "/etc/traefik/traefik-dynamic.yml"
+
+api:
+  dashboard: true
+  insecure: true
+  debug: true
+
+log:
+  level: WARN
+  filePath: "/var/log/traefik/error.log"
+  format: common
+
+accessLog:
+  filePath: "/var/log/traefik/access.log"
+  filters:
+    statusCodes:
+      - "200"
+      - "300-302"
+      - "400-499"
+    retryAttempts: true

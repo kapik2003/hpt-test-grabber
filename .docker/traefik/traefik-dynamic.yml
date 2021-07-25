@@ -1,0 +1,16 @@
+http:
+  routers:
+    api:
+      rule: Host(`traefik.hptronic.devel`)
+      entrypoints:
+        - base
+      service: api@internal
+      middlewares:
+        - myAuth
+      tls: false
+
+  middlewares:
+    myAuth:
+      basicAuth:
+        users:
+          - 'admin:$apr1$Zc2QdEOl$1bB17hPv45xgEICQk42m50'

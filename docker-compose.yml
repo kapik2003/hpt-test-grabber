@@ -1,0 +1,70 @@
+version: '3.4'
+services:
+  traefik:
+    container_name: ${PROJECT_PREFIX}-traefik-2.4
+    image: traefik:2.4
+    volumes:
+      - ./.docker/traefik/traefik.yml:${TRAEFIK_ROOT_DIR}/traefik.yml:ro
+      - ./.docker/traefik/traefik-dynamic.yml:${TRAEFIK_ROOT_DIR}/traefik-dynamic.yml:ro
+      - ~/ssl:${TRAEFIK_ROOT_DIR}/ssl:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./logs/traefik:${TRAEFIK_LOG_DIR}
+    depends_on:
+      - nginx
+    ports:
+      - ${TRAEFIK_BASE_PORT}:80
+      - ${TRAEFIK_SSL_PORT}:443
+      - ${TRAEFIK_DASHBOARD_PORT}:8081
+    networks:
+      - ${PROJECT_PROXY_NETWORK}
+    restart: always
+
+  nginx:
+    container_name: ${PROJECT_PREFIX}-nginx-1.19
+    build:
+      context: ./.docker/nginx
+      dockerfile: Dockerfile
+      args:
+        - WEB_USER=${NGINX_WEB_USER}
+        - WEB_GROUP=${NGINX_WEB_GROUP}
+        - WEB_ROOT_DIR=${NGINX_ROOT_DIR}
+        - WEB_SITE_DIR=${NGINX_SITE_DIR}
+    volumes:
+      - ./logs/nginx:${NGINX_LOG_DIR}
+      - ./www:${NGINX_SITE_DIR}
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.nginx.entrypoints=base
+      - traefik.http.routers.nginx.rule=Host(`${PROJECT_APP_DOMAIN}`)
+      - traefik.http.routers.nginx.tls=false
+    depends_on:
+      - php7.3-fpm
+    ports:
+      - ${NGINX_BASE_PORT}:80
+      - ${NGINX_SSL_PORT}:443
+    networks:
+      - ${PROJECT_PROXY_NETWORK}
+      - ${PROJECT_APP_NETWORK}
+    restart: always
+
+  php7.3-fpm:
+    container_name: ${PROJECT_PREFIX}-php-7.3
+    build:
+      context: ./.docker/php
+      dockerfile: Dockerfile
+      args:
+        - WEB_USER=${PHP_WEB_USER}
+        - WEB_GROUP=${PHP_WEB_GROUP}
+        - WEB_ROOT_DIR=${PHP_ROOT_DIR}
+    volumes:
+      - ./.docker/php/php.ini:${PHP_ROOT_DIR}/conf.d/custom.ini:ro
+      - ./logs/php:${PHP_LOG_DIR}
+      - ./www:${PHP_SITE_DIR}
+    networks:
+      - ${PROJECT_APP_NETWORK}
+    restart: always
+
+networks:
+  default:
+  proxy:
+    external: true
