@@ -62,7 +62,10 @@ class Dispatcher {
         try {
             $file = new \SplFileObject($this->filePath, 'r');
             while (!$file->eof()) {
-                $results[] = $file->fgets();
+                $content = $file->fgets();
+                if(!empty($content)) {
+                    $results[] = $content;
+                }
             }
         } catch(RuntimeException $exception) {
             return null;
